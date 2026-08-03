@@ -52,11 +52,11 @@ jobs:
     steps:
       # Download the repository onto the GitHub runner.
       - name: Check out repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       # Match the Python version currently used by the project.
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
 
         with:
           python-version: "3.10"
