@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Environment variables
+.env
+
+# Testing / tooling
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+.env              DO NOT COMMIT
+.env.local        DO NOT COMMIT
+.env.production   DO NOT COMMIT
+
+.env.example      SAFE TO COMMIT
