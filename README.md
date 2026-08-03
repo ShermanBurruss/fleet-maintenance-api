@@ -1,5 +1,7 @@
 # Fleet Maintenance API
 
+[![CI](https://github.com/ShermanBurruss/fleet-maintenance-api/actions/workflows/ci.yml/badge.svg)](https://github.com/ShermanBurruss/fleet-maintenance-api/actions/workflows/ci.yml)
+
 A RESTful backend API for managing fleet vehicles and maintenance work orders.
 
 This project was built as a backend development portfolio project using FastAPI, PostgreSQL, SQLAlchemy, Alembic, Docker, Pydantic, and Pytest. It demonstrates practical API design, relational database modeling, validation, database migrations, automated testing, and environment-based configuration.
