@@ -1,0 +1,34 @@
+# Git repository metadata
+.git
+.github
+
+# Python virtual environments
+.venv
+venv
+
+# Python caches
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+
+# Test artifacts
+.pytest_cache
+.coverage
+htmlcov
+
+# Local environment configuration
+.env
+.env.*
+
+# Editor configuration
+.vscode
+.idea
+
+# Operating-system files
+.DS_Store
+Thumbs.db
+
+# Files not required by the runtime image
+tests
+README.md
