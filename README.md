@@ -4,7 +4,7 @@
 
 A RESTful backend API for managing fleet vehicles and maintenance work orders.
 
-This project was built as a backend development portfolio project using FastAPI, PostgreSQL, SQLAlchemy, Alembic, Docker, Pydantic, and Pytest. It demonstrates practical API design, relational database modeling, validation, database migrations, automated testing, and environment-based configuration.
+This project was built as a backend development portfolio project using FastAPI, PostgreSQL, SQLAlchemy, Alembic, Docker, Docker Compose, Pydantic, Pytest, and GitHub Actions. It demonstrates practical API design, relational database modeling, validation, database migrations, automated testing, environment-based configuration, containerization, and continuous integration.
 
 ---
 
@@ -24,6 +24,10 @@ This project was built as a backend development portfolio project using FastAPI,
 - Automated API testing using Pytest and FastAPI TestClient
 - Modular API routing for easier maintenance and expansion
 - Automatically generated OpenAPI and Swagger documentation
+- Dockerized FastAPI application
+- Multi-container local development with Docker Compose
+- PostgreSQL health checks and automatic migration application at container startup
+- Continuous integration through GitHub Actions
 
 ---
 
@@ -49,22 +53,33 @@ This project was built as a backend development portfolio project using FastAPI,
 - FastAPI TestClient
 - HTTPX
 
-### Development Environment
+### Containerization and CI
 
 - Docker
+- Docker Compose
+- GitHub Actions
+
+### Development Environment
+
 - Visual Studio Code
 - PowerShell
 - Git
+- GitHub
 
 ---
 
 ## Project Structure
 
 ```text
-fleet-maintenance-api-starter/
+fleet-maintenance-api/
+│
+├── .github/
+│   └── workflows/
+│       └── ci.yml
 │
 ├── alembic/
 │   ├── versions/
+│   │   └── ce7e86ebd67b_create_initial_schema.py
 │   ├── env.py
 │   └── script.py.mako
 │
@@ -81,20 +96,26 @@ fleet-maintenance-api-starter/
 │   ├── models.py
 │   └── schemas.py
 │
+├── docker/
+│   └── postgres/
+│       └── init-test-db.sql
+│
 ├── tests/
 │   ├── conftest.py
 │   ├── test_health.py
 │   ├── test_vehicles.py
 │   └── test_work_orders.py
 │
+├── .dockerignore
 ├── .env.example
 ├── .gitignore
 ├── alembic.ini
+├── compose.yaml
+├── Dockerfile
 ├── pyproject.toml
 ├── README.md
 └── requirements.txt
 ```
-
 ---
 
 ## Database Design
@@ -281,18 +302,157 @@ Example response:
 
 ---
 
-## Local Development Setup
+# Docker Compose Quick Start
 
-### 1. Clone the repository
+The recommended way to run the Fleet Maintenance API locally is with Docker Compose.
+
+Docker Compose starts both PostgreSQL 17 and the FastAPI application. The API waits for PostgreSQL to become healthy, applies pending Alembic migrations, and then starts the web server.
+
+## Prerequisites
+
+Install:
+
+- Git
+- Docker Desktop
+
+Python and PostgreSQL do not need to be installed directly on the host machine when using Docker Compose.
+
+## 1. Clone the Repository
 
 ```bash
-git clone <repository-url>
-cd fleet-maintenance-api-starter
+git clone https://github.com/ShermanBurruss/fleet-maintenance-api.git
+cd fleet-maintenance-api
 ```
 
-### 2. Create a Python virtual environment
+## 2. Build the Application Image
 
-Windows:
+```bash
+docker compose build
+```
+
+## 3. Start the Stack
+
+Run in the foreground:
+
+```bash
+docker compose up
+```
+
+Or run in detached mode:
+
+```bash
+docker compose up -d
+```
+
+Docker Compose will:
+
+1. Start PostgreSQL 17
+2. Create the development database
+3. Create the dedicated test database when the PostgreSQL volume is first initialized
+4. Wait for PostgreSQL to pass its health check
+5. Run `alembic upgrade head`
+6. Start the FastAPI application
+
+## 4. Open the API
+
+Application root:
+
+```text
+http://127.0.0.1:8000
+```
+
+Swagger UI:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+ReDoc:
+
+```text
+http://127.0.0.1:8000/redoc
+```
+
+Health endpoint:
+
+```text
+http://127.0.0.1:8000/health
+```
+
+## 5. Check Container Status
+
+```bash
+docker compose ps
+```
+
+## 6. View Logs
+
+View the entire stack:
+
+```bash
+docker compose logs
+```
+
+View only API logs:
+
+```bash
+docker compose logs api
+```
+
+Follow API logs continuously:
+
+```bash
+docker compose logs -f api
+```
+
+## 7. Stop the Stack
+
+```bash
+docker compose down
+```
+
+This removes the running containers and Compose network while preserving PostgreSQL data.
+
+To completely reset the Compose databases:
+
+```bash
+docker compose down -v
+```
+
+> **Warning:** `docker compose down -v` permanently deletes the PostgreSQL data volume created by Docker Compose.
+
+---
+
+## Docker Compose Architecture
+
+```text
+Browser
+   │
+   │ localhost:8000
+   ▼
+FastAPI Container
+   │
+   │ Docker internal network
+   │ db:5432
+   ▼
+PostgreSQL 17 Container
+```
+
+Inside Docker Compose, the FastAPI service connects to PostgreSQL using the service name `db` instead of `localhost`.
+
+Environment-based configuration allows the same Python source code to run both directly on the host and inside containers without changing application code.
+
+---
+
+# Manual Local Development
+
+The API can also run directly from Python on the host machine.
+
+This workflow is useful for active development, debugging, and running the automated test suite.
+
+## 1. Create a Python Virtual Environment
+
+Windows PowerShell:
 
 ```powershell
 python -m venv .venv
@@ -304,19 +464,17 @@ Activate it:
 .venv\Scripts\Activate.ps1
 ```
 
-### 3. Install dependencies
+## 2. Install Dependencies
 
 ```powershell
 pip install -r requirements.txt
 ```
 
----
+## 3. Make PostgreSQL Available
 
-## PostgreSQL Development Database
+PostgreSQL must be reachable on port `5432`.
 
-The project expects PostgreSQL to be available locally.
-
-One option is to run PostgreSQL using Docker:
+You can use the PostgreSQL service from Docker Compose, or run a standalone development container:
 
 ```powershell
 docker run `
@@ -329,8 +487,7 @@ docker run `
   -d postgres:17
 ```
 
-The credentials shown above are example local-development credentials only.
-
+The credentials shown above are local-development examples only.
 ---
 
 ## Environment Configuration
@@ -389,6 +546,8 @@ alembic revision --autogenerate -m "describe schema change"
 ```
 
 Generated migrations should always be reviewed before being applied.
+
+The initial migration creates the `vehicles` and `work_orders` tables, the foreign-key relationship between them, the work-order vehicle lookup index, and Alembic's schema-version tracking.
 
 ---
 
@@ -459,6 +618,31 @@ The current test suite contains 16 passing automated API tests.
 
 ---
 
+## Continuous Integration
+
+The repository includes a GitHub Actions workflow at:
+
+```text
+.github/workflows/ci.yml
+```
+
+The workflow runs automatically when code is pushed to `main` or when a pull request targets `main`.
+
+The CI pipeline:
+
+1. Starts a temporary PostgreSQL 17 service
+2. Checks out the repository
+3. Configures Python
+4. Installs dependencies from `requirements.txt`
+5. Runs `alembic upgrade head`
+6. Runs the complete Pytest suite
+
+This verifies both application behavior and the ability of Alembic migrations to build the schema from an empty PostgreSQL database.
+
+The CI status badge at the top of this README reflects the current GitHub Actions result.
+
+---
+
 ## Validation and Error Handling
 
 The API uses Pydantic to validate incoming request data.
@@ -516,6 +700,12 @@ This project demonstrates several backend-development practices beyond basic CRU
 - Separation of application concerns
 - In-code documentation and docstrings
 - Git-safe handling of credentials
+- Docker image creation
+- Multi-container local development with Docker Compose
+- PostgreSQL container health checks
+- Automatic migration application during container startup
+- GitHub Actions continuous integration
+- Automated CI database provisioning
 
 ---
 
@@ -531,18 +721,24 @@ Planned or potential additions include:
 - Parts and service records
 - Vehicle-detailing records
 - Pagination and filtering
+- Search and sorting
 - API authentication and authorization
+- User roles and permissions
 - Additional Pytest coverage
 - Test coverage reporting
-- Docker Compose configuration
-- CI testing through GitHub Actions
-- Deployment to a cloud platform
-- Additional production logging and monitoring
-
+- Production logging
+- Structured application monitoring
+- Cloud deployment
+- Production PostgreSQL hosting
+- HTTPS and custom-domain configuration
+- Automated deployment after successful CI
+- Additional GitHub Actions quality checks
 ---
 
 ## Project Purpose
 
 This project was created to strengthen practical backend-development skills through a real-world fleet-maintenance use case.
 
-The goal is to demonstrate the ability to design, build, organize, test, and maintain a relational REST API using technologies commonly found in modern Python backend development.
+The goal is to demonstrate the ability to design, build, organize, test, containerize, and maintain a relational REST API using technologies commonly found in modern Python backend development.
+
+The project is intentionally being expanded in stages so each new capability introduces a practical backend-development concept while preserving automated test coverage and documented project history.
